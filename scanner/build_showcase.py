@@ -214,6 +214,7 @@ page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ank Kumar – Open-Licence Photo Contributions</title>
+<meta name="google-site-verification" content="6vdaUTOa-y8qc5O59yglXf5UBSVu7NfmA9-W5IPGy5A">
 <meta name="description" content="{TOTAL_FILES:,} openly licensed photographs by Ank Kumar, viewed {millions(total_views)} times on Wikipedia.">
 <style>{CSS}</style></head>
 <body>
