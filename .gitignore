@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+# Private data: scan results, notice targets, directory listings
+data/
+# SearXNG config contains a secret key
+searxng/
+# Old app backups
+app/main_v1.py
+app/main_v2.py
+# macOS
+.DS_Store
