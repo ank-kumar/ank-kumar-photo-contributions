@@ -128,8 +128,9 @@ seo_desc = (f"{TOTAL_FILES:,} photographs by Ank Kumar on Wikimedia Commons unde
             f"and published in {len(pubs)} books and journals.")
 ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": SEO_TITLE, "url": SITE,
       "description": seo_desc, "inLanguage": "en", "image": SITE + "hero.jpg",
-      "author": {"@type": "Person", "name": "Ank Kumar", "url": SITE, "jobTitle": "Photographer",
-                 "sameAs": [COMMONS_USER, FLICKR, GITHUB]},
+      "author": {"@type": "Person", "name": "Ank Kumar", "url": "https://ank-kumar.github.io/",
+                 "sameAs": ["https://www.linkedin.com/in/ankkumar/", "https://github.com/ank-kumar",
+                            "https://huggingface.co/Ank-77", COMMONS_USER, FLICKR, GITHUB]},
       "mainEntity": {"@type": "ImageGallery", "name": "Photographs by Ank Kumar on Wikimedia Commons",
                      "url": COMMONS_USER, "numberOfItems": TOTAL_FILES,
                      "license": "https://creativecommons.org/licenses/by-sa/4.0/"}}
