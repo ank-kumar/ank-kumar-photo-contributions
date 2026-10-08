@@ -97,7 +97,7 @@ def title(e):
     return e.get("t") or nice_title(e["f"])
 
 def card(e):
-    meta = f'{e["v"]:,} views, used on {e["w"]} wikis' if e.get("v") else "On Wikimedia Commons"
+    meta = f'{e["v"]:,} views, used on {e["w"]} wiki{"s" if e["w"] != 1 else ""}' if e.get("v") else "On Wikimedia Commons"
     return (f'<figure class="shot"><a href="{file_page(e["f"])}"><img src="{file_url(e["f"])}" alt="{esc(title(e))}" loading="lazy"></a>'
             f'<figcaption><span class="title">{esc(title(e))}</span><span class="meta">{meta}</span>'
             f'<span class="credit">Photo: Ank Kumar, CC BY-SA 4.0</span></figcaption></figure>')
@@ -178,7 +178,7 @@ JS = """<script>
   const esc = s => s.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const card = p => {
     const t = esc(p.t || nice(p.f));
-    const meta = p.v ? p.v.toLocaleString('en-US') + ' views, used on ' + p.w + ' wikis' : 'On Wikimedia Commons';
+    const meta = p.v ? p.v.toLocaleString('en-US') + ' views, used on ' + p.w + (p.w === 1 ? ' wiki' : ' wikis') : 'On Wikimedia Commons';
     return '<figure class="shot"><a href="' + PG + enc(p.f) + '"><img src="' + FP + enc(p.f) + '?width=500" alt="' + t +
       '" loading="lazy"></a><figcaption><span class="title">' + t + '</span><span class="meta">' + meta +
       '</span><span class="credit">Photo: Ank Kumar, CC BY-SA 4.0</span></figcaption></figure>';

@@ -27,9 +27,12 @@ for i in range(0, len(files), 50):
         text = re.sub(r"<[^>]+>", " ", html.unescape(meta.get("ImageDescription", {}).get("value", "")))
         text = re.sub(r"\s+", " ", text).strip()
         text = re.sub(r"^(English|en)\s*:\s*", "", text)
-        text = re.split(r"(?<=[.!?])\s", text)[0].strip()
-        if text:
-            caps[pg["title"].removeprefix("File:")] = text[:100].rstrip(" ,;")
+        text = re.split(r"(?<=[a-z]{3}[.!?])\s+(?=[A-Z])", text)[0].strip().rstrip(".")
+        text = re.sub(r"\(?\s*Ank\s*Kumar[^)]*\)?", "", text, flags=re.I)
+        text = re.sub(r"\s+", " ", text).strip(" ,;-")
+        prose = re.match(r"(The|This|These|A|An|It)\b", text) and re.search(r"\b(is|was|were|are|has|had)\b", text)
+        if text and len(text) <= 80 and not prose:
+            caps[pg["title"].removeprefix("File:")] = text
     print(f"  {min(i + 50, len(files))}/{len(files)} files")
     time.sleep(1)
 
