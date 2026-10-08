@@ -13,6 +13,9 @@ HERO_IMG = "hero.jpg"
 HERO_LINK = "https://www.flickr.com/photos/nomad_gsx/51846955840"
 HERO_TITLE = "Alpine golden hour from the Schilthorn, Bernese Oberland, Switzerland, 2015"
 COPY = "© 2026, Ank Kumar, All Rights Reserved"
+SITE = "https://ank-kumar.github.io/ank-kumar-photo-contributions/"
+GITHUB = "https://github.com/ank-kumar/ank-kumar-photo-contributions"
+SEO_TITLE = "Ank Kumar – Open-Licence Photo Contributions"
 FONT = 'Aptos,"Aptos Display","Segoe UI",system-ui,-apple-system,sans-serif'
 REGIONS = ["Europe", "Asia", "Australia", "Switzerland", "Zurich", "Germany", "The UK", "Scotland", "France", "Spain",
            "Italy", "Vatican", "Holland", "Belgium", "Czech Republic", "Hungary", "Turkey", "India", "Hong Kong",
@@ -120,6 +123,17 @@ for dom, label in FEATURED.items():
     if hit:
         featured.append((label, hit["url"]))
 as_of = date.today().strftime("%B %Y")
+seo_desc = (f"{TOTAL_FILES:,} photographs by Ank Kumar on Wikimedia Commons under CC BY-SA 4.0, "
+            f"viewed {millions(total_views)} times on Wikipedia across {len(langs)} languages, "
+            f"and published in {len(pubs)} books and journals.")
+ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": SEO_TITLE, "url": SITE,
+      "description": seo_desc, "inLanguage": "en", "image": SITE + "hero.jpg",
+      "author": {"@type": "Person", "name": "Ank Kumar", "url": SITE, "jobTitle": "Photographer",
+                 "sameAs": [COMMONS_USER, FLICKR, GITHUB]},
+      "mainEntity": {"@type": "ImageGallery", "name": "Photographs by Ank Kumar on Wikimedia Commons",
+                     "url": COMMONS_USER, "numberOfItems": TOTAL_FILES,
+                     "license": "https://creativecommons.org/licenses/by-sa/4.0/"}}
+ld_json = json.dumps(ld, ensure_ascii=False).replace("</", "<\\/")
 
 pub_items = "\n".join(f"""
     <li><span class="publisher">{esc(p['publisher'] or 'Self-published')}</span>
@@ -215,7 +229,16 @@ page = f"""<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ank Kumar – Open-Licence Photo Contributions</title>
 <meta name="google-site-verification" content="6vdaUTOa-y8qc5O59yglXf5UBSVu7NfmA9-W5IPGy5A">
-<meta name="description" content="{TOTAL_FILES:,} openly licensed photographs by Ank Kumar, viewed {millions(total_views)} times on Wikipedia.">
+<meta name="description" content="{esc(seo_desc)}">
+<link rel="canonical" href="{SITE}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{esc(SEO_TITLE)}">
+<meta property="og:description" content="{esc(seo_desc)}">
+<meta property="og:url" content="{SITE}">
+<meta property="og:image" content="{SITE}hero.jpg">
+<meta property="og:image:alt" content="{esc(HERO_TITLE)}">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{ld_json}</script>
 <style>{CSS}</style></head>
 <body>
 <figure class="hero">
@@ -269,7 +292,10 @@ page = f"""<!doctype html>
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(page)
-print(f"Built {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB)")
+with open(os.path.join(os.path.dirname(OUT), "sitemap.xml"), "w", encoding="utf-8") as f:
+    f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f"  <url><loc>{SITE}</loc><lastmod>{date.today().isoformat()}</lastmod></url>\n</urlset>\n")
+print(f"Built {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB) + sitemap.xml")
 print(f"  {TOTAL_FILES:,} photos | {millions(total_views)} views | {len(pubs)} publications | {len(web)} web pages")
 print("  Regions: " + ", ".join(f"{t} ({counts[t]:,})" for t in REGIONS if counts.get(t, 0) >= 4))
 print("  Subjects: " + ", ".join(f"{t} ({counts[t]:,})" for t in SUBJECTS if counts.get(t, 0) >= 4))
