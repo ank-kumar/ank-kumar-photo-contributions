@@ -3,6 +3,7 @@
 import csv, html, json, os, re, urllib.parse
 from collections import Counter, OrderedDict
 from datetime import date
+import pycountry
 
 ROOT = "/Users/ank/projects/image-reuse-tracker"
 DATA = f"{ROOT}/data"
@@ -123,6 +124,16 @@ for dom, label in FEATURED.items():
     if hit:
         featured.append((label, hit["url"]))
 as_of = date.today().strftime("%B %Y")
+geo_raw = read_json("geo_views.json", {})
+geo = {}
+for a2, v in geo_raw.get("countries", {}).items():
+    c = pycountry.countries.get(alpha_2=a2)
+    if c and v:
+        geo[int(c.numeric)] = {"n": getattr(c, "common_name", None) or c.name, "v": int(v)}
+geo_total = sum(x["v"] for x in geo.values()) or 1
+rivers_json = json.dumps(read_json("rivers.json", []), separators=(",", ":"))
+geo_rows = "".join(f'<li><span>{esc(x["n"])}</span><span class="pct">{100 * x["v"] / geo_total:.1f}%</span></li>'
+                   for x in sorted(geo.values(), key=lambda x: -x["v"])[:10])
 seo_desc = (f"{TOTAL_FILES:,} photographs by Ank Kumar on Wikimedia Commons under CC BY-SA 4.0, "
             f"viewed {millions(total_views)} times on Wikipedia across {len(langs)} languages, "
             f"and published in {len(pubs)} books and journals.")
@@ -176,11 +187,87 @@ button:hover{background:var(--ink);color:#fff}
 .pubs .publisher{font-weight:600} .pubs cite{font-style:italic;font-size:15px}
 .pubs .detail,.pubs .photo{color:var(--muted);font-size:13px}
 .sites{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 24px}
+.globe{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:center;background:radial-gradient(120% 140% at 15% 20%, #3B1D6E 0%, #1E2A6B 48%, #0B1030 100%);color:#fff;border-radius:16px;padding:28px}
+.globe-stage{position:relative}
+#globe{width:100%;aspect-ratio:1/1;display:block;cursor:grab}
+#globe:active{cursor:grabbing}
+.tip{position:absolute;pointer-events:none;background:#fff;color:var(--ink);font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.globe-side h3{margin:0 0 10px;font-size:15px;color:#7EE8D6}
+.toplist{margin:0;padding-left:20px;font-size:14px}
+.toplist li{padding:3px 0}
+.toplist li span:first-child{display:inline-block;min-width:150px}
+.toplist .pct{color:#AEB9CF;font-variant-numeric:tabular-nums}
+.note{color:#AEB9CF;font-size:12px;margin:14px 0 0}
+.globe.nogeo .globe-stage{display:none}
+@media (max-width:760px){.globe{grid-template-columns:1fr}}
 footer{max-width:1180px;margin:0 auto;padding:36px clamp(16px,4vw,40px) 56px;color:var(--muted);font-size:13px;border-top:1px solid var(--rule)}
 footer p{max-width:72ch}
 .copy{float:right;margin-left:24px}
 @media (max-width:700px){.hero .label{position:static;max-width:none}.hero img{height:52vh}.copy{float:none;display:block;margin:0 0 12px}}
 """.replace("FONTSTACK", FONT)
+
+GLOBE_JS = """<script>
+(async () => {
+  const el = document.getElementById('globe');
+  if (!el || !window.Globe || !window.d3 || !window.topojson) return;
+  const geo = JSON.parse(document.getElementById('geo').textContent);
+  let world;
+  try { world = await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')).json(); }
+  catch (e) { el.closest('.globe').classList.add('nogeo'); return; }
+  const countries = topojson.feature(world, world.objects.countries).features;
+  const vals = Object.values(geo).map(d => d.v);
+  const lo = Math.log10(Math.max(1000, d3.min(vals))), hi = Math.log10(d3.max(vals));
+  const t = v => Math.max(0, Math.min(1, (Math.log10(Math.max(v, 1)) - lo) / (hi - lo)));
+  const heat = d3.interpolateRgbBasis(['#16425B', '#1F7A8C', '#3FC1C9', '#B8F3E9']);
+  const capFor = (f, hov) => {
+    const gg = geo[+f.id];
+    if (!gg) return hov ? '#2A3F57' : '#1B2B3F';
+    const c = d3.color(heat(t(gg.v)));
+    return hov ? c.brighter(0.6).formatRgb() : c.formatRgb();
+  };
+  const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n);
+  const centre = f => {
+    if (f.geometry.type !== 'MultiPolygon') return d3.geoCentroid(f);
+    let best = null, area = -1;
+    for (const coords of f.geometry.coordinates) {
+      const poly = {type: 'Polygon', coordinates: coords}, a = d3.geoArea(poly);
+      if (a > area) { area = a; best = poly; }
+    }
+    return d3.geoCentroid(best);
+  };
+  const bars = countries.filter(f => geo[+f.id]).map(f => {
+    const g = geo[+f.id], c = centre(f);
+    return {lng: c[0], lat: c[1], name: g.n, v: g.v, t: t(g.v)};
+  });
+  const label = (name, v) => '<div style="font:13px/1.35 Aptos,Segoe UI,sans-serif;background:rgba(8,18,28,.88);color:#fff;padding:6px 10px;border-radius:8px">'
+    + '<b>' + name + '</b><br>' + (v ? 'about ' + fmt(v) + ' views' : 'no readers recorded') + '</div>';
+  const IMG = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ctl = null;
+  const hover = on => { if (ctl) ctl.autoRotate = !reduce && !on; };
+  let g;
+  try { g = new Globe(el); } catch (e) { g = Globe()(el); }
+  g.width(el.clientWidth).height(el.clientWidth)
+    .backgroundColor('rgba(0,0,0,0)')
+    .showAtmosphere(true).atmosphereColor('#5EEAD4').atmosphereAltitude(0.16)
+    .polygonsData(countries)
+    .polygonAltitude(0.008)
+    .polygonCapColor(f => capFor(f, false))
+    .polygonSideColor(() => 'rgba(10,22,38,0.9)')
+    .polygonStrokeColor(() => 'rgba(8,20,34,0.9)')
+    .polygonLabel(f => label(geo[+f.id] ? geo[+f.id].n : (f.properties.name || ''), geo[+f.id] ? geo[+f.id].v : 0))
+    .onPolygonHover(f => { g.polygonCapColor(d => capFor(d, d === f)).polygonAltitude(d => d === f ? 0.03 : 0.008); hover(!!f); })
+    .pointOfView({lat: 32, lng: 20, altitude: 1.85});
+  const mat = g.globeMaterial();
+  mat.color.set('#0B1E33');
+  mat.shininess = 8;
+  ctl = g.controls();
+  ctl.enableZoom = false;
+  ctl.autoRotate = !reduce;
+  ctl.autoRotateSpeed = 0.35;
+  new ResizeObserver(() => g.width(el.clientWidth).height(el.clientWidth)).observe(el);
+})();
+</script>"""
 
 JS = """<script>
 (() => {
@@ -269,6 +356,15 @@ page = f"""<!doctype html>
     <div class="morewrap"><button id="more" type="button">Show more</button></div>
   </section>
   <section>
+    <h2>Where my photographs are seen</h2>
+    <p class="lede">Estimated readers of Wikipedia articles that use my photographs, by country, over the last 12 months. Countries are shaded by readers, from deep blue to bright mint. Drag to spin; hover for figures.</p>
+    <div class="globe">
+      <div class="globe-stage"><div id="globe" role="img" aria-label="Interactive 3D globe shaded by estimated readers per country"></div></div>
+      <div class="globe-side"><h3>Top countries</h3><ol class="toplist">{geo_rows}</ol>
+      <p class="note">{len(geo)} countries in total. Estimate: each article's views are split by its Wikipedia edition's reader mix by country (Wikimedia Analytics). Wikimedia does not publish country data per article or per file.</p></div>
+    </div>
+  </section>
+  <section>
     <h2>In print</h2>
     <p class="lede">Books and journals that reproduce my photographs with credit, each checked against the published text.</p>
     <ul class="pubs">{pub_items}
@@ -287,6 +383,11 @@ page = f"""<!doctype html>
 </footer>
 <script type="application/json" id="photos">{json.dumps(photos, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")}</script>
 <script type="application/json" id="topics">{json.dumps(TOPIC_ORDER)}</script>
+<script type="application/json" id="geo">{json.dumps(geo)}</script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2"></script>
+{GLOBE_JS}
 {JS}
 </body></html>"""
 
