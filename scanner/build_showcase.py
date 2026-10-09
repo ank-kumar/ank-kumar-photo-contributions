@@ -153,6 +153,13 @@ pub_items = "\n".join(f"""
       <span class="detail">{esc(', '.join(x for x in [p['authors'], p['year'], p['location']] if x))}</span>
       {f'<span class="photo">{esc(p["photo"])}</span>' if p['photo'] else ''}</li>""" for p in pubs)
 site_items = "\n".join(f'<li><a href="{esc(u)}">{esc(l)}</a></li>' for l, u in featured)
+page_thumbs = read_json("page_thumbs.json", {})
+def page_li(w):
+    t = page_thumbs.get(w["url"])
+    icon = (f'<img class="ph" src="{esc(t)}" width="60" height="40" alt="" loading="lazy">' if t else
+            f'<img class="fav" src="https://www.google.com/s2/favicons?domain={esc(w["domain"])}&sz=64" width="32" height="32" alt="" loading="lazy">')
+    return f'<li><a href="{esc(w["url"])}">{icon}<span>{esc(w["domain"])}</span></a></li>'
+all_items = "\n".join(page_li(w) for w in sorted(web, key=lambda w: (w["url"] not in page_thumbs, w["domain"])))
 
 CSS = """
 :root{--ink:#14213D;--paper:#FFFFFF;--mist:#EEF1F5;--rule:#D3D9E2;--blue:#2E5FB8;--muted:#5A6577}
@@ -187,6 +194,12 @@ button:hover{background:var(--ink);color:#fff}
 .pubs .publisher{font-weight:600} .pubs cite{font-style:italic;font-size:15px}
 .pubs .detail,.pubs .photo{color:var(--muted);font-size:13px}
 .sites{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 24px}
+.allsites{margin-top:18px} .allsites summary{cursor:pointer;color:var(--blue);font-weight:600}
+.weblist{list-style:none;padding:0;margin:14px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 18px;font-size:13px}
+.weblist a{display:flex;gap:10px;align-items:center;text-decoration:none}
+.weblist img.ph{width:60px;height:40px;object-fit:cover;border-radius:4px;flex:none;background:var(--mist)}
+.weblist img.fav{width:32px;height:32px;margin:4px 14px;flex:none}
+.weblist span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .globe{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:center;background:radial-gradient(120% 140% at 15% 20%, #3B1D6E 0%, #1E2A6B 48%, #0B1030 100%);color:#fff;border-radius:16px;padding:28px}
 .globe-stage{position:relative}
 #globe{width:100%;aspect-ratio:1/1;display:block;cursor:grab}
@@ -374,6 +387,7 @@ page = f"""<!doctype html>
     <h2>On the web</h2>
     <p class="lede">{len(web):,} pages on {len(web_sites)} websites use my photographs, including:</p>
     <ul class="sites">{site_items}</ul>
+    <details class="allsites"><summary>All {len(web):,} pages on {len(web_sites)} websites</summary><ul class="weblist">{all_items}</ul></details>
   </section>
 </main>
 <footer>
