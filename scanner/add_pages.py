@@ -5,7 +5,11 @@ import csv, json, os, sys, urllib.parse
 DATA = "/Users/ank/projects/image-reuse-tracker/data"
 
 def clean(u):
-    p = urllib.parse.urlsplit(u.strip())
+    u = u.strip()
+    while u and (u[0] in "'\"" or u[-1] in "'\"" or u.endswith("%27") or u.endswith("%22")):
+        if u.endswith("%27") or u.endswith("%22"): u = u[:-3]
+        else: u = u.strip("'\"").strip()
+    p = urllib.parse.urlsplit(u)
     q = [(k, v) for k, v in urllib.parse.parse_qsl(p.query) if k != "srsltid"]
     return urllib.parse.urlunsplit((p.scheme, p.netloc, p.path, urllib.parse.urlencode(q), ""))
 
