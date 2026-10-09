@@ -48,15 +48,7 @@ def canon(url):
         return f"{host}/wiki/{q['title'][0]}"
     return host + path.rstrip("/") + ("?" + query if query else "")
 
-def is_search(host, path):
-    if not any(host.startswith(x) or ("." + x) in host for x in SEARCH_ENGINES):
-        return False
-    # Portal subdomains (autos./news./finance.yahoo.com) are publishers, not search.
-    if "yahoo.com" in host and not (host.startswith("search.") or path.startswith("/search")):
-        return False
-    return True
-
-def classify(url, src=""):
+def classify(url):
     target, _ = unwrap_archive(url)
     host, path, query = host_path(target)
     full = target.lower()
@@ -69,7 +61,7 @@ def classify(url, src=""):
         return "own", ""
     if on("linkedin.com") and path.startswith("/in/"):
         return "own", ""
-    if is_search(host, path):
+    if any(host.startswith(s) or ("." + s) in host for s in SEARCH_ENGINES):
         return None, "search engine"
     if any(on(d) for d in WIKIMEDIA):
         return None, "Wikimedia site/tool"
@@ -81,7 +73,7 @@ def classify(url, src=""):
         return "notice", ""
     if host in MIRRORS:
         return ("mirror", "") if "ank-kumar" in path else (None, "mirror sidebar match")
-    if src != "manual" and ((path in ("", "/") and query) or "product-similar-image" in path):
+    if (path in ("", "/") and query) or "product-similar-image" in path:
         return "spam", ""
     return "reuse", ""
 
@@ -97,7 +89,7 @@ def main():
         with open(path) as f:
             state = json.load(f)
         for url, h in state.get("hits", {}).items():
-            bucket, reason = classify(url, src)
+            bucket, reason = classify(url)
             if not bucket:
                 excluded[reason] += 1
                 continue
