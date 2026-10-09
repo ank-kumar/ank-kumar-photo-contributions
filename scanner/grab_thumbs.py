@@ -32,28 +32,44 @@ def src_of(tag):
     m = re.search(r'srcset\s*=\s*["\']([^"\'\s,]+)', tag, re.I)
     return H.unescape(m.group(1)) if m else None
 
-def pick(html, page):
+def norm(name):
+    name = urllib.parse.unquote(name.split("?")[0].rsplit("/", 1)[-1])
+    name = re.sub(r"^\d+px-", "", name).replace("_", " ")
+    return re.sub(r"\.(jpe?g|png|webp)(\.(jpe?g|png|webp))?$", "", name, flags=re.I).strip().lower()
+
+MINE = {norm(f) for f in json.load(open(f"{DATA}/commons_files.json", encoding="utf-8"))}
+
+def wm_fix(u):
+    m = re.match(r"(https?://upload\.wikimedia\.org/.+/thumb/.+?/)(\d+)px-([^/?]+)", u)
+    return f"{m.group(1)}500px-{m.group(3)}" if m else u
+
+def candidates(html, page):
     imgs = []
     for m in re.finditer(r"<img\b[^>]*>", html, re.I):
         s = src_of(m.group(0))
         if s and not s.lower().split("?")[0].endswith(".svg") and not any(k in s.lower() for k in SKIP):
-            imgs.append((m.start(), s, m.group(0)))
-    for pos, s, tag in imgs:                                  # 2. credit in the image itself
+            imgs.append((m.start(), urllib.parse.urljoin(page, s), m.group(0)))
+    for m in re.finditer(r'(?:href|content)\s*=\s*["\']([^"\']*upload\.wikimedia\.org[^"\']+)', html, re.I):
+        imgs.append((m.start(), H.unescape(m.group(1)), ""))
+    out = []
+    for pos, s, tag in imgs:                                   # exact: one of Ank's Commons files
+        if norm(s) in MINE:
+            out.append((wm_fix(s), "your Commons file"))
+    for pos, s, tag in imgs:                                   # image named or captioned Ank Kumar
         if CREDIT.search(urllib.parse.unquote(s)) or CREDIT.search(tag):
-            return s, "image named/captioned Ank Kumar"
-    text_credits = [m.start() for m in CREDIT.finditer(html)]
-    best, dist = None, 10 ** 9
-    for c in text_credits:                                    # 3. image just before the caption
-        for pos, s, tag in imgs:
-            if pos <= c and c - pos < dist and c - pos < 5000:
-                best, dist = s, c - pos
-    if best:
-        return best, "image above the Ank Kumar caption"
+            out.append((wm_fix(s), "image named/captioned Ank Kumar"))
+    credits = [m.start() for m in CREDIT.finditer(html)]
+    near = sorted(((c - pos, s) for c in credits for pos, s, tag in imgs if 0 <= c - pos < 5000))
+    out += [(wm_fix(s), "image above the Ank Kumar caption") for d, s in near[:4]]
     m = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)', html, re.I) or \
         re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.I)
-    if m and CREDIT.search(urllib.parse.unquote(m.group(1))):  # 5.
-        return H.unescape(m.group(1)), "share image named Ank Kumar"
-    return None, "no image found next to the credit"
+    if m and (CREDIT.search(urllib.parse.unquote(m.group(1))) or norm(m.group(1)) in MINE):
+        out.append((H.unescape(m.group(1)), "share image is your photo"))
+    seen, uniq = set(), []
+    for u, why in out:
+        if u not in seen:
+            seen.add(u); uniq.append((u, why))
+    return uniq
 
 def youtube_id(url):
     m = re.search(r"(?:v=|/shorts/|youtu\.be/)([A-Za-z0-9_-]{11})", url)
@@ -71,15 +87,20 @@ def work(job):
     page, manual = job
     try:
         if manual:
-            img, why = manual, "checked by hand"
+            cands = [(manual, "checked by hand")]
         elif youtube_id(page):
-            img, why = f"https://i.ytimg.com/vi/{youtube_id(page)}/hqdefault.jpg", "YouTube thumbnail"
+            cands = [(f"https://i.ytimg.com/vi/{youtube_id(page)}/hqdefault.jpg", "YouTube thumbnail")]
         else:
-            img, why = pick(get(page).decode("utf-8", "ignore"), page)
-            if not img:
-                return page, None, why
-            img = urllib.parse.urljoin(page, img)
-        return page, save(page, img), why
+            cands = candidates(get(page).decode("utf-8", "ignore"), page)
+        if not cands:
+            return page, None, "no image found next to the credit"
+        last = ""
+        for img, why in cands:
+            try:
+                return page, save(page, img), why
+            except Exception as e:
+                last = str(e)[:50]
+        return page, None, f"images found but none loaded ({last})"
     except Exception as e:
         return page, None, f"could not read ({str(e)[:60]})"
 

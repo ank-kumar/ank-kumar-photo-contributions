@@ -18,8 +18,8 @@ for url, hit in manual["hits"].items():
         continue
     try:
         page = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30).read().decode("utf-8", "ignore")
-    except (urllib.error.URLError, TimeoutError) as e:
-        print(f"  blocked   {url}  ({getattr(e, 'code', e)})")
+    except Exception as e:
+        print(f"  blocked   {url}  ({getattr(e, 'code', None) or type(e).__name__})")
         continue
     found = set()
     for rx in RX:
