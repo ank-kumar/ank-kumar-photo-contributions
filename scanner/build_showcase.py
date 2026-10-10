@@ -125,13 +125,20 @@ for t in TOPIC_ORDER:
 
 pubs = [p for p in read_csv("publications.csv") if p["status"] == "verified"]
 LOWQ = ("facebook.com", "instagram.com")   # excluded from the public reach list
+def _xkey(u):
+    """Loose key so an excluded URL matches regardless of trailing slash, %-encoding or www."""
+    u = urllib.parse.unquote(u.strip()).rstrip("/")
+    sp = urllib.parse.urlsplit(u)
+    return (sp.netloc.lower().removeprefix("www.") + sp.path.rstrip("/") +
+            ("?" + sp.query if sp.query else "")).lower()
+
 _ex = os.path.join(DATA, "page_exclude.txt")
-EXCLUDE = {l.strip() for l in open(_ex, encoding="utf-8")} if os.path.exists(_ex) else set()
-EXCLUDE = {u for u in EXCLUDE if u and not u.startswith("#")}
+_raw = [l.strip() for l in open(_ex, encoding="utf-8")] if os.path.exists(_ex) else []
+EXCLUDE = {_xkey(u) for u in _raw if u and not u.startswith("#")}
 web = [w for w in read_csv("text_scan_results.csv")
        if w["bucket"] == "reuse"
        and not any(d in w["domain"].lower() for d in LOWQ)
-       and w["url"] not in EXCLUDE]
+       and _xkey(w["url"]) not in EXCLUDE]
 web_sites = {w["domain"] for w in web}
 featured = []
 for dom, label in FEATURED.items():
