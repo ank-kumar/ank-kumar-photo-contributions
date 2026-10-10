@@ -64,14 +64,6 @@ def read_json(name, default):
 def millions(n):
     return f"{n / 1e6:.1f} million"
 
-def short(n):
-    n = int(n)
-    if n >= 1_000_000:
-        return f"{n / 1e6:.1f}M"
-    if n >= 1_000:
-        return f"{n / 1e3:.0f}K"
-    return f"{n:,}"
-
 # ---------- data ----------
 captions, topics = read_json("captions.json", {}), read_json("topics.json", {})
 reach = read_csv("wikimedia_reach.csv")
@@ -124,14 +116,7 @@ for t in TOPIC_ORDER:
         break
 
 pubs = [p for p in read_csv("publications.csv") if p["status"] == "verified"]
-LOWQ = ("facebook.com", "instagram.com")   # excluded from the public reach list
-_ex = os.path.join(DATA, "page_exclude.txt")
-EXCLUDE = {l.strip() for l in open(_ex, encoding="utf-8")} if os.path.exists(_ex) else set()
-EXCLUDE = {u for u in EXCLUDE if u and not u.startswith("#")}
-web = [w for w in read_csv("text_scan_results.csv")
-       if w["bucket"] == "reuse"
-       and not any(d in w["domain"].lower() for d in LOWQ)
-       and w["url"] not in EXCLUDE]
+web = [w for w in read_csv("text_scan_results.csv") if w["bucket"] == "reuse"]
 web_sites = {w["domain"] for w in web}
 featured = []
 for dom, label in FEATURED.items():
@@ -147,10 +132,8 @@ for a2, v in geo_raw.get("countries", {}).items():
         geo[int(c.numeric)] = {"n": getattr(c, "common_name", None) or c.name, "v": int(v)}
 geo_total = sum(x["v"] for x in geo.values()) or 1
 rivers_json = json.dumps(read_json("rivers.json", []), separators=(",", ":"))
-geo_rows = "".join(
-    f'<li><span>{esc(x["n"])}</span>'
-    f'<span class="pct">{100 * x["v"] / geo_total:.1f}%<span class="cnt">{short(x["v"])}</span></span></li>'
-    for x in sorted(geo.values(), key=lambda x: -x["v"])[:10])
+geo_rows = "".join(f'<li><span>{esc(x["n"])}</span><span class="pct">{100 * x["v"] / geo_total:.1f}%</span></li>'
+                   for x in sorted(geo.values(), key=lambda x: -x["v"])[:10])
 seo_desc = (f"{TOTAL_FILES:,} photographs by Ank Kumar on Wikimedia Commons under CC BY-SA 4.0, "
             f"viewed {millions(total_views)} times on Wikipedia across {len(langs)} languages, "
             f"and published in {len(pubs)} books and journals.")
@@ -227,7 +210,6 @@ button:hover{background:var(--ink);color:#fff}
 .toplist li{padding:3px 0}
 .toplist li span:first-child{display:inline-block;min-width:150px}
 .toplist .pct{color:#AEB9CF;font-variant-numeric:tabular-nums}
-.toplist .cnt{color:#7EE8D6;margin-left:8px;font-size:13px}
 .note{color:#AEB9CF;font-size:12px;margin:14px 0 0}
 .globe.nogeo .globe-stage{display:none}
 @media (max-width:760px){.globe{grid-template-columns:1fr}}

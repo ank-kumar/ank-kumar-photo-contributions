@@ -66,6 +66,11 @@ def all_imgs(html, page):
             imgs.append((m.start(), urllib.parse.urljoin(page, s), m.group(0)))
     for m in re.finditer(r'(?:href|content)\s*=\s*["\']([^"\']*upload\.wikimedia\.org[^"\']+)', html, re.I):
         imgs.append((m.start(), H.unescape(m.group(1)), ""))
+    # CSS background images: hero photos are often set this way, not as <img>
+    for m in re.finditer(r"""url\(\s*['"]?([^'")\s]+\.(?:jpe?g|png|webp)[^'")\s]*)""", html, re.I):
+        u = H.unescape(m.group(1))
+        if not any(k in u.lower() for k in SKIP):
+            imgs.append((m.start(), urllib.parse.urljoin(page, u), ""))
     return imgs
 
 def og_image(html, page):
