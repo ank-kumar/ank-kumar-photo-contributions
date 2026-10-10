@@ -6,7 +6,7 @@ OUT = "/Users/ank/projects/image-reuse-tracker/data/books.csv"
 UA = {"User-Agent": "ImageReuseTracker/0.2 (https://commons.wikimedia.org/wiki/User:Ank_gsx)"}
 API = "https://www.googleapis.com/books/v1/volumes"
 KEY = os.environ["GOOGLE_BOOKS_KEY"]
-CLAIMED = ["A2jFEAAAQBAJ", "eLSeEAAAQBAJ", "uxqiEQAAQBAJ", "2dpOEQAAQBAJ", "UQSGEQAAQBAJ",
+CLAIMED = ["5bbJEAAAQBAJ", "A2jFEAAAQBAJ", "eLSeEAAAQBAJ", "uxqiEQAAQBAJ", "2dpOEQAAQBAJ", "UQSGEQAAQBAJ",
            "vHjZEQAAQBAJ", "Zm3VEQAAQBAJ", "1nTPEQAAQBAJ", "t3POEAAAQBAJ", "QRU4EQAAQBAJ",
            "cLg-EAAAQBAJ", "YpqcEAAAQBAJ", "YicaEQAAQBAJ", "1O-aEAAAQBAJ", "QrGmEAAAQBAJ",
            "FpJiEQAAQBAJ", "QBVGEQAAQBAJ", "ZArdEQAAQBAJ", "nqVFEQAAQBAJ", "6MYLEgAAQBAJ"]
