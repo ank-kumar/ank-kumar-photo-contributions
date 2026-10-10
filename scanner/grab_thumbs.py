@@ -187,15 +187,22 @@ def work(job):
 
 os.makedirs(OUT, exist_ok=True)
 done = json.load(open(MAP)) if os.path.exists(MAP) else {}
+def mkey(u):
+    """Loose key so a manual entry matches regardless of trailing slash or %-encoding."""
+    u = urllib.parse.unquote(u.strip()).rstrip("/")
+    sp = urllib.parse.urlsplit(u)
+    return (sp.netloc.lower().removeprefix("www.") + sp.path.rstrip("/") +
+            ("?" + sp.query if sp.query else "")).lower()
+
 manual = {}
 if os.path.exists(MANUAL):
     for line in open(MANUAL, encoding="utf-8"):
         if line.strip() and not line.startswith("#") and "\t" in line:
             p, i = line.rstrip("\n").split("\t", 1)
-            manual[p.strip()] = i.strip()
+            manual[mkey(p)] = i.strip()
 pages = [r["url"] for r in csv.DictReader(open(f"{DATA}/text_scan_results.csv", encoding="utf-8")) if r["bucket"] == "reuse"]
 redo = "--all" in sys.argv
-jobs = [(p, manual.get(p)) for p in pages if redo or p not in done or p in manual]
+jobs = [(p, manual.get(mkey(p))) for p in pages if redo or p not in done or mkey(p) in manual]
 print(f"Checking {len(jobs)} pages for your image...")
 todo, nocredit, creditpages = [], [], []
 with ThreadPoolExecutor(max_workers=8) as ex:
