@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""For every web page in the reach list, save a thumbnail of the image that carries the 'Ank Kumar' credit.
+Order of evidence on each page:
+  1. hand-checked image in data/page_thumbs_manual.tsv
+  2. an <img> whose filename, alt or title contains 'Ank Kumar'
+  3. the <img> closest before the 'Ank Kumar' caption/credit text
+  4. YouTube: the video's own thumbnail
+  5. the page's share image (og:image) whose filename contains 'Ank Kumar'
+Pages that can't be read keep the site logo and are listed in data/page_thumbs_todo.txt."""
+import csv, hashlib, html as H, io, json, os, re, sys, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from PIL import Image, ImageOps
+
+ROOT = "/Users/ank/projects/image-reuse-tracker"
+DATA, OUT = f"{ROOT}/data", f"{ROOT}/docs/thumbs"
+MAP, MANUAL, TODO = f"{DATA}/page_thumbs.json", f"{DATA}/page_thumbs_manual.tsv", f"{DATA}/page_thumbs_todo.txt"
+UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
+CREDIT = re.compile(r"ank[\s_%20.+,-]*kumar", re.I)
+SKIP = ("logo", "icon", "avatar", "sprite", "pixel", "gravatar", "emoji", "badge", "flag", "favicon")
+
+def get(url, referer=None):
+    h = {"User-Agent": UA, "Accept-Language": "en"}
+    if referer:
+        h["Referer"] = referer
+    return urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=25).read()
+
+def src_of(tag):
+    for a in ("data-src", "data-lazy-src", "data-original", "src"):
+        m = re.search(r'\s' + a + r'\s*=\s*["\']([^"\']+)', tag, re.I)
+        if m and not m.group(1).startswith("data:"):
+            return H.unescape(m.group(1))
+    m = re.search(r'srcset\s*=\s*["\']([^"\'\s,]+)', tag, re.I)
+    return H.unescape(m.group(1)) if m else None
+
+def norm(name):
+    name = urllib.parse.unquote(name.split("?")[0].rsplit("/", 1)[-1])
+    name = re.sub(r"^\d+px-", "", name).replace("_", " ")
+    return re.sub(r"\.(jpe?g|png|webp)(\.(jpe?g|png|webp))?$", "", name, flags=re.I).strip().lower()
+
+MINE = {norm(f) for f in json.load(open(f"{DATA}/commons_files.json", encoding="utf-8"))}
+
+def wm_fix(u):
+    m = re.match(r"(https?://upload\.wikimedia\.org/.+/thumb/.+?/)(\d+)px-([^/?]+)", u)
+    return f"{m.group(1)}500px-{m.group(3)}" if m else u
+
+def candidates(html, page):
+    imgs = []
+    for m in re.finditer(r"<img\b[^>]*>", html, re.I):
+        s = src_of(m.group(0))
+        if s and not s.lower().split("?")[0].endswith(".svg") and not any(k in s.lower() for k in SKIP):
+            imgs.append((m.start(), urllib.parse.urljoin(page, s), m.group(0)))
+    for m in re.finditer(r'(?:href|content)\s*=\s*["\']([^"\']*upload\.wikimedia\.org[^"\']+)', html, re.I):
+        imgs.append((m.start(), H.unescape(m.group(1)), ""))
+    out = []
+    for pos, s, tag in imgs:                                   # exact: one of Ank's Commons files
+        if norm(s) in MINE:
+            out.append((wm_fix(s), "your Commons file"))
+    for pos, s, tag in imgs:                                   # image named or captioned Ank Kumar
+        if CREDIT.search(urllib.parse.unquote(s)) or CREDIT.search(tag):
+            out.append((wm_fix(s), "image named/captioned Ank Kumar"))
+    credits = [m.start() for m in CREDIT.finditer(html)]
+    near = sorted(((c - pos, s) for c in credits for pos, s, tag in imgs if 0 <= c - pos < 5000))
+    out += [(wm_fix(s), "image above the Ank Kumar caption") for d, s in near[:4]]
+    m = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)', html, re.I) or \
+        re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.I)
+    if m and (CREDIT.search(urllib.parse.unquote(m.group(1))) or norm(m.group(1)) in MINE):
+        out.append((H.unescape(m.group(1)), "share image is your photo"))
+    seen, uniq = set(), []
+    for u, why in out:
+        if u not in seen:
+            seen.add(u); uniq.append((u, why))
+    return uniq
+
+def youtube_id(url):
+    m = re.search(r"(?:v=|/shorts/|youtu\.be/)([A-Za-z0-9_-]{11})", url)
+    return m.group(1) if m else None
+
+def save(page, img_url):
+    im = Image.open(io.BytesIO(get(img_url, referer=page))).convert("RGB")
+    if im.width < 120 or im.height < 80:
+        raise ValueError("image too small")
+    name = hashlib.sha1(page.encode()).hexdigest()[:14] + ".jpg"
+    ImageOps.fit(im, (240, 160)).save(f"{OUT}/{name}", "JPEG", quality=82)
+    return f"thumbs/{name}"
+
+def work(job):
+    page, manual = job
+    try:
+        if manual:
+            cands = [(manual, "checked by hand")]
+        elif youtube_id(page):
+            cands = [(f"https://i.ytimg.com/vi/{youtube_id(page)}/hqdefault.jpg", "YouTube thumbnail")]
+        else:
+            cands = candidates(get(page).decode("utf-8", "ignore"), page)
+        if not cands:
+            return page, None, "no image found next to the credit"
+        last = ""
+        for img, why in cands:
+            try:
+                return page, save(page, img), why
+            except Exception as e:
+                last = str(e)[:50]
+        return page, None, f"images found but none loaded ({last})"
+    except Exception as e:
+        return page, None, f"could not read ({str(e)[:60]})"
+
+os.makedirs(OUT, exist_ok=True)
+done = json.load(open(MAP)) if os.path.exists(MAP) else {}
+manual = {}
+if os.path.exists(MANUAL):
+    for line in open(MANUAL, encoding="utf-8"):
+        if line.strip() and not line.startswith("#") and "\t" in line:
+            p, i = line.rstrip("\n").split("\t", 1)
+            manual[p.strip()] = i.strip()
+pages = [r["url"] for r in csv.DictReader(open(f"{DATA}/text_scan_results.csv", encoding="utf-8")) if r["bucket"] == "reuse"]
+redo = "--all" in sys.argv
+jobs = [(p, manual.get(p)) for p in pages if redo or p not in done or p in manual]
+print(f"Checking {len(jobs)} pages for the image beside your credit...")
+todo = []
+with ThreadPoolExecutor(max_workers=8) as ex:
+    for page, path, why in ex.map(work, jobs):
+        if path:
+            done[page] = path
+            print(f"  ok    {why:<34} {page[:90]}")
+        else:
+            todo.append(f"{page}\t{why}")
+            print(f"  --    {why:<34} {page[:90]}")
+json.dump(done, open(MAP, "w"), indent=1)
+open(TODO, "w").write("\n".join(todo) + "\n")
+print(f"\n{sum(1 for p in pages if p in done)} of {len(pages)} pages have their image. "
+      f"{len(todo)} still need one: listed in data/page_thumbs_todo.txt")
