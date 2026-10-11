@@ -24,7 +24,7 @@ REGIONS = ["Europe", "Asia", "Australia", "Switzerland", "Zurich", "Germany", "T
 SUBJECTS = ["Museums", "Art", "Religion", "Architecture", "Sports", "Motorsports", "Olympics", "Fitness",
             "Military", "Aviation", "Automobiles", "Trains", "Transport", "Finance", "Universities", "Physics",
             "Technology", "United Nations", "People", "Nature", "Wildlife", "Ocean", "Mountains", "Scuba Diving",
-            "Streets", "Music", "Movies", "Comics", "Food", "Events", "Luxury"]
+            "Streets", "Cityscapes", "Night", "Music", "Movies", "Comics", "Food", "Events", "Luxury"]
 TOPIC_ORDER = REGIONS + SUBJECTS
 FEATURED = OrderedDict([
     ("smithsonianmag.com", "Smithsonian Magazine"), ("rollingstone.co.uk", "Rolling Stone UK"),

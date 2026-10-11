@@ -45,20 +45,20 @@ TOPICS = {
                     "ford", "honda", "toyota", "pagani", "zenvo", "maserati", "alfa romeo", "rolls royce", "bentley",
                     "tesla", "vehicle", "roadster", "convertible", "coupe", "mahindra", "volkswagen", "lotus",
                     "batmobile", "autobau", "chelsea auto legends", "top gear", "hennessey", "rimac", "fenyr"],
-    "Sports": ["stadium", "football", "soccer", "fifa", "uefa", "ballon", "camp nou", "san siro", "arsenal",
+    "Sports": ["roland garros", "stade roland garros", "grand slam", "fifa world football museum", "switzerland vs", "vs england", "football museum", "athletics", "stadium", "football", "soccer", "fifa", "uefa", "ballon", "camp nou", "san siro", "arsenal",
                "liverpool fc", "manchester city", "cricket", "lord s", "olympic", "olympics", "tennis", "golf",
                "bodybuilding", "arnold classic", "bernabeu", "allianz arena", "etihad", "sports", "hungaroring",
                "formula one", "racing", "world cup", "fa cup", "club", "rugby", "ice hockey"],
-    "Architecture": ["church", "cathedral", "basilica", "mosque", "temple", "tower", "skyscraper", "building",
+    "Architecture": ["memorial", "quarter", "cityscape", "stadthaus", "opernhaus", "technopark", "forum romanum", "landesmuseum", "church", "cathedral", "basilica", "mosque", "temple", "tower", "skyscraper", "building",
                      "bridge", "palace", "castle", "station", "square", "piazza", "platz", "monument", "gate", "dome",
                      "pantheon", "colosseum", "architecture", "chapel", "abbey", "synagogue", "parliament",
                      "bundeshaus", "reichstag", "fountain", "arch", "ruins", "hall", "facade", "tram stop"],
-    "Museums": ["museum", "museums", "museo", "musee", "exhibition", "gallery", "collection", "experience"],
+    "Museums": ["liverpool fc museum", "olympic museum", "musee olympique", "museum", "museums", "museo", "musee", "exhibition", "gallery", "collection", "experience"],
     "Art": ["art", "painting", "sculpture", "statue", "fresco", "mural", "artwork", "street art", "east side gallery",
             "giger", "xenomorph", "installation", "kunst", "bust", "relief", "graffiti"],
     "Music": ["music", "concert", "festival", "techno", "opera", "awakenings", "gashouder", "orchestra", "band",
               "beatles", "dj", "guitar", "musician", "jazz", "rock"],
-    "Nature": ["lake", "mountain", "mountains", "alps", "alpine", "beach", "sea", "ocean", "river", "waterfall",
+    "Nature": ["twelve apostles", "aerial photograph", "lake", "mountain", "mountains", "alps", "alpine", "beach", "sea", "ocean", "river", "waterfall",
                "forest", "sunset", "sunrise", "glacier", "reef", "island", "bay", "garden", "snow", "landscape",
                "valley", "cliff", "cliffs", "kulm", "peak", "coast", "nature", "wildlife", "bird", "birds", "flowers"],
     "Trains": ["train", "trains", "tram", "trams", "railway", "railroad", "bahnhof", "hauptbahnhof", "metro",
@@ -74,7 +74,7 @@ TOPICS = {
                "film festival", "film awards", "hollywood", "bollywood", "star wars"],
     "Comics": ["comic", "comics", "comic strip", "comic book", "tintin", "smurfs", "manga", "marvel", "superhero",
                "asterix", "lucky luke"],
-    "Finance": ["bank", "banking", "ubs", "credit suisse", "julius bar", "julius baer", "kantonalbank", "raiffeisen",
+    "Finance": ["swiss life", "zurich insurance", "banks in", "bank", "banking", "ubs", "credit suisse", "julius bar", "julius baer", "kantonalbank", "raiffeisen",
                 "paradeplatz", "bahnhofstrasse", "stock exchange", "bourse", "swiss exchange", "finance", "financial",
                 "swiss national bank", "national bank", "insurance", "swiss re", "wealth management", "banknote",
                 "currency", "coin", "coins", "money", "fintech", "headquarters of", "hsbc", "bnp", "deutsche bank"],
@@ -95,7 +95,7 @@ TOPICS = {
     "Physics": ["cern", "lhc", "large hadron collider", "particle", "accelerator", "synchrocyclotron", "cyclotron",
                 "physics", "quantum", "einstein", "collider", "antimatter", "detector", "atlas experiment",
                 "cms experiment", "globe of science", "nuclear research"],
-    "Technology": ["technology", "computer", "server", "data center", "datacentre", "data centre", "robot",
+    "Technology": ["technopark", "vintage computer festival", "observation wheel", "technology", "computer", "server", "data center", "datacentre", "data centre", "robot",
                    "robotics", "electronics", "semiconductor", "satellite", "rocket", "spacecraft", "nasa", "isro",
                    "drone", "laboratory", "innovation", "microchip", "supercomputer", "engineering", "telescope",
                    "polar satellite launch vehicle", "pslv"],
@@ -121,6 +121,12 @@ TOPICS = {
     "United Nations": ["united nations", "palais des nations", "un office", "unog", "unicef", "unhcr",
                        "world health organization", "world trade organization", "broken chair", "league of nations",
                        "international labour", "un geneva", "nations unies"],
+    "Night": ["night", "at night", "night view", "night views", "nocturnal", "illuminated",
+              "after dark", "dusk", "evening", "night photography", "lights at night"],
+    "Cityscapes": ["cityscape", "skyline", "quarter", "quartier", "neighbourhood", "neighborhood",
+                   "friesstrasse", "seebach", "oerlikon", "escher wyss", "industriequartier",
+                   "zuri west", "aerial view", "aerial views", "panorama", "rooftop view",
+                   "city view", "urban"],
     "Zurich": ["zurich", "oerlikon", "limmat", "limmatquai", "grossmunster", "fraumunster", "lindenhof",
                "bahnhofstrasse", "paradeplatz", "burkliplatz", "utoquai", "hardbrucke", "altstetten", "uetliberg",
                "felsenegg", "landesmuseum", "friesstrasse", "hallenstadion", "dolder", "kloten", "dubendorf", "glatt"],
@@ -152,7 +158,19 @@ def norm(s):
     s = "".join(c for c in s if not unicodedata.combining(c))
     return " " + re.sub(r"[^a-z0-9]+", " ", s) + " "
 
-KW = {t: [norm(k) for k in kws] for t, kws in TOPICS.items()}
+def variants(k):
+    """A keyword and its plural, so 'building' also matches 'Buildings in Oerlikon'."""
+    k = norm(k)
+    out = {k}
+    stem = k.rstrip()
+    out.add(stem + "s ")
+    if stem.endswith("y"):
+        out.add(stem[:-1] + "ies ")
+    if stem.endswith(("s", "x", "ch", "sh")):
+        out.add(stem + "es ")
+    return out
+
+KW = {t: sorted(set().union(*(variants(k) for k in kws))) for t, kws in TOPICS.items()}
 
 def get(params):
     req = urllib.request.Request("https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(params), headers=UA)
@@ -177,6 +195,10 @@ for i in range(0, len(files), 50):
     if (i // 50) % 20 == 19 or i + 50 >= len(files):
         print(f"  {min(i + 50, len(files))}/{len(files)}")
     time.sleep(1)
+
+json.dump(cats, open(f"{DATA}/commons_categories.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+print(f"Saved {sum(len(v) for v in cats.values()):,} category memberships "
+      f"({len(set(c for v in cats.values() for c in v)):,} distinct) to data/commons_categories.json")
 
 topics = {}
 for f in files:
