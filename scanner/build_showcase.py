@@ -21,8 +21,10 @@ FONT = 'Aptos,"Aptos Display","Segoe UI",system-ui,-apple-system,sans-serif'
 REGIONS = ["Europe", "Asia", "Australia", "Switzerland", "Zurich", "Germany", "The UK", "Scotland", "France", "Spain",
            "Italy", "Vatican", "Holland", "Belgium", "Czech Republic", "Hungary", "Turkey", "India", "Hong Kong",
            "Macau", "Singapore"]
-SUBJECTS = ["Airplanes", "Military", "Automobiles", "Sports", "Architecture", "Museums", "Art", "Movies", "Comics",
-            "Music", "Nature", "Trains & transport", "Religion"]
+SUBJECTS = ["Museums", "Art", "Religion", "Architecture", "Sports", "Motorsports", "Olympics", "Fitness",
+            "Military", "Aviation", "Automobiles", "Trains", "Transport", "Finance", "Universities", "Physics",
+            "Technology", "United Nations", "People", "Nature", "Wildlife", "Ocean", "Mountains", "Scuba Diving",
+            "Streets", "Music", "Movies", "Comics", "Food", "Events", "Luxury"]
 TOPIC_ORDER = REGIONS + SUBJECTS
 FEATURED = OrderedDict([
     ("smithsonianmag.com", "Smithsonian Magazine"), ("rollingstone.co.uk", "Rolling Stone UK"),
@@ -124,6 +126,10 @@ for t in TOPIC_ORDER:
         break
 
 pubs = [p for p in read_csv("publications.csv") if p["status"] == "verified"]
+SHOT_IN = ["The United Kingdom", "Scotland", "Thailand", "Switzerland", "Austria", "Germany",
+           "Italy", "France", "The Netherlands", "Belgium", "Spain", "Hungary", "Czech Republic",
+           "Denmark", "Singapore", "Hong Kong", "Macau", "Australia", "Vatican City", "India", "Turkey"]
+
 LOWQ = ("facebook.com", "instagram.com")   # excluded from the public reach list
 def _xkey(u):
     """Loose key so an excluded URL matches regardless of trailing slash, %-encoding or www."""
@@ -202,6 +208,9 @@ h2{font-weight:600;font-size:22px;line-height:1.25;margin:0 0 6px}
 .lede{max-width:72ch;color:var(--muted);margin:0 0 18px}
 .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px 40px;margin:44px 0 0;padding:26px 0 0;border-top:1px solid var(--rule)}
 .facts div{margin:0} .facts dt{font-weight:600;font-size:26px;line-height:1.1} .facts dd{margin:4px 0 0;color:var(--muted);font-size:13px}
+.shotin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:22px 0 0;padding:0}
+.shotin span{font-size:13px;color:var(--muted);margin-right:4px}
+.shotin i{font-style:normal;font-size:13px;line-height:1;padding:6px 11px;border:1px solid var(--rule);border-radius:999px;white-space:nowrap}
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 26px}
 .controls label{font-size:13px;color:var(--muted)}
 select{font:inherit;padding:8px 12px;border:1px solid var(--rule);border-radius:8px;background:#fff;color:var(--ink);min-width:240px}
@@ -381,7 +390,9 @@ page = f"""<!doctype html>
     <div><dt>{len(reach):,}</dt><dd>of them illustrating {articles:,} articles</dd></div>
     <div><dt>{len(wikis)}</dt><dd>Wikimedia sites, including {len(langs)} Wikipedias</dd></div>
     <div><dt>{len(pubs)}</dt><dd>books and journals that credit my work</dd></div>
+    <div><dt>{len(SHOT_IN)}</dt><dd>countries I photographed them in</dd></div>
   </dl>
+  <p class="shotin"><span>Photographed in</span>{"".join(f"<i>{esc(x)}</i>" for x in SHOT_IN)}</p>
   <section>
     <h2>The collection</h2>
     <p class="lede">A random mix from all {TOTAL_FILES:,} photographs, {len(reach)} of them used on Wikipedia. Pick a region or subject, switch to most viewed, or shuffle again.</p>
