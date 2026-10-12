@@ -127,6 +127,12 @@ TOPICS = {
                    "friesstrasse", "seebach", "oerlikon", "escher wyss", "industriequartier",
                    "zuri west", "aerial view", "aerial views", "panorama", "rooftop view",
                    "city view", "urban"],
+    "Austria": ["austria", "austrian", "osterreich", "vienna", "wien", "salzburg", "innsbruck", "hallstatt",
+                "tyrol", "tirol", "graz", "hangar 7", "red bull ring", "salzkammergut"],
+    "Thailand": ["thailand", "thai", "bangkok", "phuket", "pattaya", "chiang mai", "krabi", "ayutthaya",
+                 "wat arun", "wat pho", "grand palace bangkok"],
+    "Denmark": ["denmark", "danish", "copenhagen", "kobenhavn", "nyhavn", "little mermaid", "tivoli gardens",
+                "oresund", "aarhus"],
     "Zurich": ["zurich", "oerlikon", "limmat", "limmatquai", "grossmunster", "fraumunster", "lindenhof",
                "bahnhofstrasse", "paradeplatz", "burkliplatz", "utoquai", "hardbrucke", "altstetten", "uetliberg",
                "felsenegg", "landesmuseum", "friesstrasse", "hallenstadion", "dolder", "kloten", "dubendorf", "glatt"],
@@ -151,7 +157,7 @@ TOPICS = {
 PARENT = {"Switzerland": "Europe", "Germany": "Europe", "The UK": "Europe", "Italy": "Europe", "India": "Asia",
           "Zurich": "Switzerland", "Scotland": "The UK", "Vatican": "Europe", "Holland": "Europe",
           "Belgium": "Europe", "Czech Republic": "Europe", "France": "Europe", "Spain": "Europe",
-          "Hungary": "Europe", "Turkey": "Europe", "Hong Kong": "Asia", "Macau": "Asia", "Singapore": "Asia"}
+          "Hungary": "Europe", "Austria": "Europe", "Denmark": "Europe", "Thailand": "Asia", "Turkey": "Europe", "Hong Kong": "Asia", "Macau": "Asia", "Singapore": "Asia"}
 
 def norm(s):
     s = unicodedata.normalize("NFKD", s.lower())

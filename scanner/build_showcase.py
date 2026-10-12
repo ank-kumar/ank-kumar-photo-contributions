@@ -20,7 +20,7 @@ SEO_TITLE = "Ank Kumar – Open-Licence Photo Contributions"
 FONT = 'Aptos,"Aptos Display","Segoe UI",system-ui,-apple-system,sans-serif'
 REGIONS = ["Europe", "Asia", "Australia", "Switzerland", "Zurich", "Germany", "The UK", "Scotland", "France", "Spain",
            "Italy", "Vatican", "Holland", "Belgium", "Czech Republic", "Hungary", "Turkey", "India", "Hong Kong",
-           "Macau", "Singapore"]
+           "Macau", "Singapore", "Austria", "Thailand", "Denmark"]
 SUBJECTS = ["Museums", "Art", "Religion", "Architecture", "Sports", "Motorsports", "Olympics", "Fitness",
             "Military", "Aviation", "Automobiles", "Trains", "Transport", "Finance", "Universities", "Physics",
             "Technology", "United Nations", "People", "Nature", "Wildlife", "Ocean", "Mountains", "Scuba Diving",
@@ -126,9 +126,13 @@ for t in TOPIC_ORDER:
         break
 
 pubs = [p for p in read_csv("publications.csv") if p["status"] == "verified"]
-SHOT_IN = ["The United Kingdom", "Scotland", "Thailand", "Switzerland", "Austria", "Germany",
-           "Italy", "France", "The Netherlands", "Belgium", "Spain", "Hungary", "Czech Republic",
-           "Denmark", "Singapore", "Hong Kong", "Macau", "Australia", "Vatican City", "India", "Turkey"]
+SHOT_IN = [("The United Kingdom", "The UK"), ("Scotland", "Scotland"), ("Thailand", None),
+           ("Switzerland", "Switzerland"), ("Austria", "Austria"), ("Germany", "Germany"),
+           ("Italy", "Italy"), ("France", "France"), ("The Netherlands", "Holland"),
+           ("Belgium", "Belgium"), ("Spain", "Spain"), ("Hungary", "Hungary"),
+           ("Czech Republic", "Czech Republic"), ("Denmark", "Denmark"), ("Singapore", "Singapore"),
+           ("Hong Kong", "Hong Kong"), ("Macau", "Macau"), ("Australia", "Australia"),
+           ("Vatican City", "Vatican"), ("India", "India"), ("Turkey", "Turkey")]
 
 LOWQ = ("facebook.com", "instagram.com")   # excluded from the public reach list
 def _xkey(u):
@@ -210,7 +214,9 @@ h2{font-weight:600;font-size:22px;line-height:1.25;margin:0 0 6px}
 .facts div{margin:0} .facts dt{font-weight:600;font-size:26px;line-height:1.1} .facts dd{margin:4px 0 0;color:var(--muted);font-size:13px}
 .shotin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:22px 0 0;padding:0}
 .shotin span{font-size:13px;color:var(--muted);margin-right:4px}
-.shotin i{font-style:normal;font-size:13px;line-height:1;padding:6px 11px;border:1px solid var(--rule);border-radius:999px;white-space:nowrap}
+.shotin a{font-size:13px;line-height:1;padding:6px 11px;border:1px solid var(--rule);border-radius:999px;white-space:nowrap;text-decoration:none;color:inherit;transition:background .15s,border-color .15s}
+.shotin a:hover,.shotin a:focus-visible{background:var(--ink,#1b1b1b);color:#fff;border-color:transparent}
+.shotin i{font-style:normal;font-size:13px;line-height:1;padding:6px 11px;border:1px dashed var(--rule);border-radius:999px;white-space:nowrap;color:var(--muted)}
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 26px}
 .controls label{font-size:13px;color:var(--muted)}
 select{font:inherit;padding:8px 12px;border:1px solid var(--rule);border-radius:8px;background:#fff;color:var(--ink);min-width:240px}
@@ -352,6 +358,11 @@ JS = """<script>
     show(12);
   };
   sel.addEventListener('change', pick);
+  document.querySelectorAll('.shotin a[data-topic]').forEach(a => a.addEventListener('click', e => {
+    const t = a.dataset.topic;
+    if ([...sel.options].some(o => o.value === t)) { e.preventDefault(); sel.value = t; pick();
+      document.getElementById('gallery').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  }));
   shuf.addEventListener('click', pick);
   more.addEventListener('click', () => show(12));
   sel.disabled = false;
@@ -392,7 +403,7 @@ page = f"""<!doctype html>
     <div><dt>{len(pubs)}</dt><dd>books and journals that credit my work</dd></div>
     <div><dt>{len(SHOT_IN)}</dt><dd>countries I photographed them in</dd></div>
   </dl>
-  <p class="shotin"><span>Photographed in</span>{"".join(f"<i>{esc(x)}</i>" for x in SHOT_IN)}</p>
+  <p class="shotin"><span>Photographed in</span>{"".join((f'<a href="#gallery" data-topic="{esc(t)}">{esc(label)}</a>' if t else f'<i>{esc(label)}</i>') for label, t in SHOT_IN)}</p>
   <section>
     <h2>The collection</h2>
     <p class="lede">A random mix from all {TOTAL_FILES:,} photographs, {len(reach)} of them used on Wikipedia. Pick a region or subject, switch to most viewed, or shuffle again.</p>
